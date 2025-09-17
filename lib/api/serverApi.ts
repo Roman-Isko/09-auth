@@ -1,107 +1,117 @@
-// "use server";
-
-// import { cookies } from "next/headers";
-
-// const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-// /**
-//  * Sign in user
-//  */
-// export async function signIn(payload: { email: string; password: string }) {
-//   const res = await fetch(`${API_URL}/auth/sign-in`, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(payload),
-//     credentials: "include",
-//   });
-
-//   if (!res.ok) {
-//     const error = await res.json().catch(() => ({}));
-//     throw new Error(error.message || "Sign in failed");
-//   }
-
-//   return res.json();
-// }
-
-// /**
-//  * Sign up new user
-//  */
-// export async function signUp(payload: {
-//   name: string;
-//   email: string;
-//   password: string;
-// }) {
-//   const res = await fetch(`${API_URL}/auth/sign-up`, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(payload),
-//     credentials: "include",
-//   });
-
-//   if (!res.ok) {
-//     const error = await res.json().catch(() => ({}));
-//     throw new Error(error.message || "Sign up failed");
-//   }
-
-//   return res.json();
-// }
-
-// /**
-//  * Get current user (server-side)
-//  */
-// export async function getUserServer() {
-//   const cookieStore = cookies();
-//   const cookieHeader = cookieStore.toString();
-
-//   const res = await fetch(`${API_URL}/users/me`, {
-//     method: "GET",
-//     headers: {
-//       Cookie: cookieHeader,
-//     },
-//     credentials: "include",
-//     cache: "no-store", // завжди свіжі дані
-//   });
-
-//   if (!res.ok) {
-//     return null;
-//   }
-
-//   return res.json();
-// }
-
 // lib/api/serverApi.ts
-export type SignInPayload = { email: string; password: string };
-export type SignUpPayload = { email: string; password: string };
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import type { ServerUser } from "./types";
+import type { User } from "../../types/user";
 
-export async function signIn(payload: SignInPayload) {
-  const res = await fetch(`${BASE_URL}/auth/login`, {
+// ----------------------
+// Sign In
+// ----------------------
+export async function signIn(payload: { email: string; password: string }) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const res = await fetch(`${apiUrl}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Sign in failed");
-  return res.json();
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || "Sign in failed");
+  }
+
+  return res.json() as Promise<ServerUser>;
 }
 
-export async function signUp(payload: SignUpPayload) {
-  const res = await fetch(`${BASE_URL}/auth/register`, {
+// ----------------------
+// Sign Up
+// ----------------------
+export async function signUp(payload: { email: string; password: string }) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  const res = await fetch(`${apiUrl}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Sign up failed");
-  return res.json();
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || "Sign up failed");
+  }
+
+  return res.json() as Promise<ServerUser>;
 }
 
-export async function getUserServer() {
-  const res = await fetch(`${BASE_URL}/users/me`, {
-    method: "GET",
-    credentials: "include",
-  });
-  if (!res.ok) return null;
-  return res.json();
+// ----------------------
+// Get Current User (Server-Side)
+// ----------------------
+export async function getUserServer(): Promise<User | null> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+
+  try {
+    const res = await fetch(`${apiUrl}/users/me`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+
+    const serverUser: ServerUser = await res.json();
+
+    // маппінг у наш доменний тип User
+    const user: User = {
+      id: serverUser.id,
+      email: serverUser.email,
+      username: serverUser.name || "Unknown",
+      avatar: serverUser.avatar || "",
+      createdAt: new Date().toISOString(), // заглушки, бо бекенд їх не віддає
+      updatedAt: new Date().toISOString(),
+    };
+
+    return user;
+  } catch {
+    return null;
+  }
 }
+
+// export type SignInPayload = { email: string; password: string };
+// export type SignUpPayload = { email: string; password: string };
+
+// const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+// export async function signIn(payload: SignInPayload) {
+//   const res = await fetch(`${BASE_URL}/auth/login`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     credentials: "include",
+//     body: JSON.stringify(payload),
+//   });
+//   if (!res.ok) throw new Error("Sign in failed");
+//   return res.json();
+// }
+
+// export async function signUp(payload: SignUpPayload) {
+//   const res = await fetch(`${BASE_URL}/auth/register`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     credentials: "include",
+//     body: JSON.stringify(payload),
+//   });
+//   if (!res.ok) throw new Error("Sign up failed");
+//   return res.json();
+// }
+
+// export async function getUserServer() {
+//   const res = await fetch(`${BASE_URL}/users/me`, {
+//     method: "GET",
+//     credentials: "include",
+//   });
+//   if (!res.ok) return null;
+//   return res.json();
+// }
