@@ -1,59 +1,107 @@
+// "use server";
+
 // import { cookies } from "next/headers";
-// import axios from "axios";
-// import type { User } from "../../types/user";
 
-// const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+// const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// export const getUserServer = async (): Promise<User | null> => {
-//   const cookieStore = await cookies();
+// /**
+//  * Sign in user
+//  */
+// export async function signIn(payload: { email: string; password: string }) {
+//   const res = await fetch(`${API_URL}/auth/sign-in`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify(payload),
+//     credentials: "include",
+//   });
 
-//   const accessToken = cookieStore.get("accessToken")?.value;
-//   const refreshToken = cookieStore.get("refreshToken")?.value;
+//   if (!res.ok) {
+//     const error = await res.json().catch(() => ({}));
+//     throw new Error(error.message || "Sign in failed");
+//   }
 
-//   if (!accessToken && !refreshToken) {
+//   return res.json();
+// }
+
+// /**
+//  * Sign up new user
+//  */
+// export async function signUp(payload: {
+//   name: string;
+//   email: string;
+//   password: string;
+// }) {
+//   const res = await fetch(`${API_URL}/auth/sign-up`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify(payload),
+//     credentials: "include",
+//   });
+
+//   if (!res.ok) {
+//     const error = await res.json().catch(() => ({}));
+//     throw new Error(error.message || "Sign up failed");
+//   }
+
+//   return res.json();
+// }
+
+// /**
+//  * Get current user (server-side)
+//  */
+// export async function getUserServer() {
+//   const cookieStore = cookies();
+//   const cookieHeader = cookieStore.toString();
+
+//   const res = await fetch(`${API_URL}/users/me`, {
+//     method: "GET",
+//     headers: {
+//       Cookie: cookieHeader,
+//     },
+//     credentials: "include",
+//     cache: "no-store", // завжди свіжі дані
+//   });
+
+//   if (!res.ok) {
 //     return null;
 //   }
 
-//   try {
-//     const response = await axios.get(`${BASE_URL}/auth/current`, {
-//       headers: { Authorization: `Bearer ${accessToken}` },
-//       withCredentials: true,
-//     });
+//   return res.json();
+// }
 
-//     return response.data as User;
-//   } catch {
-//     return null;
-//   }
-// };
+// lib/api/serverApi.ts
+export type SignInPayload = { email: string; password: string };
+export type SignUpPayload = { email: string; password: string };
 
-export async function signIn(email: string, password: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+export async function signIn(payload: SignInPayload) {
+  const res = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(payload),
   });
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || "Login failed");
-  }
-
+  if (!res.ok) throw new Error("Sign in failed");
   return res.json();
 }
 
-export async function signUp(email: string, password: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+export async function signUp(payload: SignUpPayload) {
+  const res = await fetch(`${BASE_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(payload),
   });
+  if (!res.ok) throw new Error("Sign up failed");
+  return res.json();
+}
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || "Registration failed");
-  }
-
+export async function getUserServer() {
+  const res = await fetch(`${BASE_URL}/users/me`, {
+    method: "GET",
+    credentials: "include",
+  });
+  if (!res.ok) return null;
   return res.json();
 }

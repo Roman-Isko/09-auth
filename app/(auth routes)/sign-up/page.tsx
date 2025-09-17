@@ -16,7 +16,8 @@ export default function SignUpPage() {
 
   const handleSignUp = async (email: string, password: string) => {
     try {
-      await signUp(email, password);
+      await signUp({ email, password });
+      // await signUp(email, password);
       router.push("/notes");
     } catch (error: unknown) {
       if (error instanceof Error) {

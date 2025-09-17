@@ -16,7 +16,8 @@ export default function SignInPage() {
 
   const handleSignIn = async (email: string, password: string) => {
     try {
-      await signIn(email, password);
+      await signIn({ email, password });
+      // await signIn(email, password);
       router.push("/notes");
     } catch (error: unknown) {
       if (error instanceof Error) {
