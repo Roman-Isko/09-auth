@@ -1,4 +1,3 @@
-// app/(auth routes)/layout.tsx
 import type { ReactNode } from "react";
 import AuthNavigation from "../../components/AuthNavigation/AuthNavigation";
 import css from "./layout.module.css";

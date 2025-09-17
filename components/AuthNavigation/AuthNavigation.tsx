@@ -11,7 +11,6 @@ export default function AuthNavigation() {
 
   const handleLogout = async () => {
     try {
-      // Вихід користувача через API
       const res = await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
@@ -23,10 +22,8 @@ export default function AuthNavigation() {
     } catch (err) {
       console.error("Logout API failed:", err);
     } finally {
-      // Очищаємо стан авторизації у store
       logout();
 
-      // SPA редирект на сторінку входу
       router.push("/sign-in");
     }
   };

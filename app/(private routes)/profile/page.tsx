@@ -1,24 +1,3 @@
-// import type { Metadata } from "next";
-// import { redirect } from "next/navigation";
-// import ProfileClient from "./ProfileClient";
-// import { getUserServer } from "../../../lib/api/serverApi";
-// import type { User } from "../../../types/user";
-
-// export const metadata: Metadata = {
-//   title: "Profile | NoteHub",
-//   description: "User profile page with account information in NoteHub app.",
-// };
-
-// export default async function ProfilePage() {
-//   const user: User | null = await getUserServer();
-
-//   if (!user) {
-//     redirect("/sign-in");
-//   }
-
-//   return <ProfileClient initialUser={user} />;
-// }
-
 import { redirect } from "next/navigation";
 import ProfileClient from "./ProfileClient";
 import { getUserServer } from "../../../lib/api/serverApi";
