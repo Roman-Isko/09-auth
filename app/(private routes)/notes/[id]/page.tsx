@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { dehydrate } from "@tanstack/react-query";
-import getQueryClient from "../../../lib/getQueryClient";
-import { getNoteById } from "../../../lib/api";
+import getQueryClient from "../../../../lib/getQueryClient";
+import { getNoteById } from "../../../../lib/api/api";
 import NoteDetailsWrapper from "./NoteDetailsWrapper";
-import QueryHydration from "../../../components/QueryHydration/QueryHydration";
+import QueryHydration from "../../../../components/QueryHydration/QueryHydration";
 
 interface NotePageProps {
   params: Promise<{ id: string }>;

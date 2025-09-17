@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "@uidotdev/usehooks";
-import { getNotes } from "../../lib/api";
+import { getNotes } from "../../lib/api/api";
 import type { NotesResponse } from "../../types/note";
 
 import NoteList from "../NoteList/NoteList";
@@ -33,6 +33,14 @@ export default function NotesClient({
   const [search, setSearch] = useState(initialSearch);
   const [isOpen, setIsOpen] = useState(false);
 
+  useEffect(() => {
+    setPage(initialPage);
+  }, [initialPage]);
+
+  useEffect(() => {
+    setSearch(initialSearch);
+  }, [initialSearch]);
+
   const tag = useMemo(
     () => (initialTag === "All" ? undefined : initialTag),
     [initialTag],
@@ -52,10 +60,9 @@ export default function NotesClient({
         ...(debouncedSearch ? { search: debouncedSearch } : {}),
         ...(tag ? { tag } : {}),
       }),
-
     initialData: initialNotes,
-
     placeholderData: (prev) => prev,
+    staleTime: 30_000,
   });
 
   const handleSearch = (query: string) => setSearch(query);
@@ -65,7 +72,7 @@ export default function NotesClient({
       <SearchBox onSearch={handleSearch} initialValue={initialSearch} />
 
       <button onClick={() => setIsOpen(true)} className={css.button}>
-        Create note+
+        Create note +
       </button>
 
       {isLoading && <Loader />}
@@ -75,9 +82,13 @@ export default function NotesClient({
         />
       )}
 
-      {data && data.notes.length > 0 && <NoteList notes={data.notes} />}
+      {data?.notes?.length ? (
+        <NoteList notes={data.notes} />
+      ) : (
+        !isLoading && <ErrorMessage message="Нотаток не знайдено" />
+      )}
 
-      {data && data.totalPages > 1 && (
+      {data?.totalPages && data.totalPages > 1 && (
         <Pagination
           currentPage={page}
           totalPages={data.totalPages}
