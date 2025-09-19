@@ -2,58 +2,43 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import Image from "next/image";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-interface User {
-  id: string;
-  email: string;
-  username?: string | null;
-  avatar?: string | null;
-}
+import { getCurrentUser, updateUsername } from "../../../../lib/api/clientApi";
+import { useAuthStore } from "../../../../lib/store/authStore";
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, setUser } = useAuthStore();
 
-  const [username, setUsername] = useState<string>("");
-  const [avatar, setAvatar] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    async function fetchUser() {
       try {
-        const res = await axios.get(`${BASE_URL}/users/me`, {
-          withCredentials: true,
-        });
-        setUser(res.data);
-
-        setUsername(res.data.username ?? "");
-        setAvatar(res.data.avatar ?? "");
-      } catch (err) {
-        console.error(err);
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+        setUsername(currentUser.username);
+      } catch {
         router.push("/sign-in");
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    fetchProfile();
-  }, [router]);
+    if (!user) fetchUser();
+    else setLoading(false);
+  }, [user, router, setUser]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await axios.patch(
-        `${BASE_URL}/users/me`,
-        { username, avatar },
-        { withCredentials: true },
-      );
+      const updatedUser = await updateUsername(username);
+      setUser(updatedUser);
       router.push("/profile");
     } catch (err) {
       console.error("Failed to update profile:", err);
+      alert("Failed to update profile");
     }
   };
 
@@ -66,6 +51,16 @@ export default function EditProfilePage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
+          <label className="block mb-1">Email</label>
+          <input
+            type="email"
+            value={user.email}
+            readOnly
+            className="w-full border p-2 rounded bg-gray-100"
+          />
+        </div>
+
+        <div>
           <label className="block mb-1">Username</label>
           <input
             type="text"
@@ -75,19 +70,9 @@ export default function EditProfilePage() {
           />
         </div>
 
-        <div>
-          <label className="block mb-1">Avatar URL</label>
-          <input
-            type="text"
-            value={avatar}
-            onChange={(e) => setAvatar(e.target.value)}
-            className="w-full border p-2 rounded"
-          />
-        </div>
-
         <div className="flex items-center gap-4">
           <Image
-            src={avatar || "/default-avatar.png"}
+            src={user.avatar || "/default-avatar.png"}
             alt="avatar preview"
             width={64}
             height={64}
@@ -96,12 +81,21 @@ export default function EditProfilePage() {
           <span>{username || user.email}</span>
         </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Save Changes
-        </button>
+        <div className="flex gap-4">
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Save Changes
+          </button>
+          <button
+            type="button"
+            className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+            onClick={() => router.push("/profile")}
+          >
+            Cancel
+          </button>
+        </div>
       </form>
     </div>
   );

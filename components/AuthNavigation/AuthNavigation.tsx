@@ -34,12 +34,12 @@ export default function AuthNavigation() {
         <>
           <li className={css.navigationItem}>
             <Link href="/sign-up" className={css.navigationLink}>
-              Register
+              Sign Up
             </Link>
           </li>
           <li className={css.navigationItem}>
             <Link href="/sign-in" className={css.navigationLink}>
-              Login
+              Sign In
             </Link>
           </li>
         </>

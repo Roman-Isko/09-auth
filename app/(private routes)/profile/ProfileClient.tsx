@@ -37,7 +37,7 @@ export default function ProfileClient({ user }: ProfileClientProps) {
             <strong>Email:</strong> {user.email}
           </p>
           <p>
-            <strong>ID:</strong> {user.id}
+            <strong>ID:</strong> {user._id}
           </p>
         </div>
       </div>

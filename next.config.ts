@@ -1,7 +1,16 @@
+// next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "notehub-public.goit.study",
+        pathname: "/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getNoteById } from "../../../../lib/api/api";
+import { getNoteById } from "../../../../lib/api/clientApi";
 import type { Note } from "../../../../types/note";
 import Loader from "../../../../components/Loader/Loader";
 import ErrorMessage from "../../../../components/ErrorMessage/ErrorMessage";

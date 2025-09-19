@@ -1,23 +1,24 @@
+// app/(private routes)/notes/filter/[...slug]/page.tsx
 import NotesClient from "../../../../../components/Notes/Notes.client";
 import type { NotesResponse } from "../../../../../types/note";
-import { getNotesSSR } from "../../../../../lib/api/ssr";
+import { getNotesServer } from "../../../../../lib/api/serverApi";
 
 interface NotesPageProps {
-  params: Promise<{ slug?: string[] }>;
-  searchParams: Promise<{ page?: string; search?: string }>;
+  params: { slug?: string[] };
+  searchParams: { page?: string; search?: string };
 }
 
 export default async function NotesPage({
   params,
   searchParams,
 }: NotesPageProps) {
-  const { slug } = await params;
-  const { page = "1", search = "" } = await searchParams;
+  const { slug } = params;
+  const { page = "1", search = "" } = searchParams;
 
   const tag = slug?.[0] ?? "All";
   const pageNumber = Number(page) || 1;
 
-  const initialNotes: NotesResponse = await getNotesSSR({
+  const initialNotes: NotesResponse = await getNotesServer({
     page: pageNumber,
     ...(search ? { search } : {}),
     ...(tag !== "All" ? { tag } : {}),

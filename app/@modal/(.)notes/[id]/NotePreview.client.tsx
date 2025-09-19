@@ -8,7 +8,7 @@ import Modal from "../../../../components/NotePreview/Modal";
 import Loader from "../../../../components/Loader/Loader";
 import ErrorMessage from "../../../../components/ErrorMessage/ErrorMessage";
 
-import { getNoteById } from "../../../../lib/api/api";
+import { getNoteById } from "../../../../lib/api/clientApi";
 import type { Note } from "../../../../types/note";
 
 type NotePreviewProps = {

@@ -1,69 +1,141 @@
+import axios, { AxiosInstance, AxiosResponse } from "axios";
+import { cookies } from "next/headers";
 import type { ServerUser } from "./types";
 import type { User } from "../../types/user";
+import type { Note } from "../../types/note";
 
-export async function signIn(payload: { email: string; password: string }) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is not defined");
 
-  const res = await fetch(`${apiUrl}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
+const serverApi: AxiosInstance = axios.create({
+  baseURL: apiUrl,
+  withCredentials: true,
+});
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.message || "Sign in failed");
+type CookieEntry = { name: string; value: string };
+type CookieStoreLike = {
+  getAll: () => CookieEntry[];
+  get?: (name: string) => CookieEntry | undefined;
+  toString?: () => string;
+};
+
+async function resolveCookieStore(): Promise<CookieStoreLike> {
+  const maybe = cookies() as unknown;
+  if (typeof (maybe as Promise<unknown>)?.then === "function") {
+    return await (maybe as Promise<CookieStoreLike>);
   }
-
-  return res.json() as Promise<ServerUser>;
+  return maybe as CookieStoreLike;
 }
 
-export async function signUp(payload: { email: string; password: string }) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+function cookieHeaderFromStore(store: CookieStoreLike): string {
+  return store
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+}
 
-  const res = await fetch(`${apiUrl}/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
+export type TokensResponse = {
+  accessToken: string;
+  refreshToken: string;
+};
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.message || "Sign up failed");
+export async function signIn(payload: {
+  email: string;
+  password: string;
+}): Promise<ServerUser> {
+  try {
+    const res = await serverApi.post<ServerUser>("/auth/login", payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      const serverMessage =
+        typeof err.response?.data === "object" &&
+        err.response?.data !== null &&
+        "message" in err.response!.data
+          ? (err.response!.data as { message?: string }).message
+          : undefined;
+      throw new Error(serverMessage ?? "Sign in failed");
+    }
+    throw new Error("Sign in failed");
   }
+}
 
-  return res.json() as Promise<ServerUser>;
+export async function signUp(payload: {
+  email: string;
+  password: string;
+}): Promise<ServerUser> {
+  try {
+    const res = await serverApi.post<ServerUser>("/auth/register", payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+    return res.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      const serverMessage =
+        typeof err.response?.data === "object" &&
+        err.response?.data !== null &&
+        "message" in err.response!.data
+          ? (err.response!.data as { message?: string }).message
+          : undefined;
+      throw new Error(serverMessage ?? "Sign up failed");
+    }
+    throw new Error("Sign up failed");
+  }
+}
+
+export async function refreshSession(): Promise<AxiosResponse<TokensResponse>> {
+  const cookieStore = await resolveCookieStore();
+  const cookieHeader = cookieHeaderFromStore(cookieStore);
+
+  return serverApi.get<TokensResponse>("/auth/refresh", {
+    headers: { Cookie: cookieHeader },
+  });
 }
 
 export async function getUserServer(): Promise<User | null> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is not defined");
+  const cookieStore = await resolveCookieStore();
+  const cookieHeader = cookieHeaderFromStore(cookieStore);
 
   try {
-    const res = await fetch(`${apiUrl}/users/me`, {
-      credentials: "include",
-      cache: "no-store",
+    const res = await serverApi.get<ServerUser>("/users/me", {
+      headers: { Cookie: cookieHeader },
     });
 
-    if (!res.ok) return null;
+    const serverUser = res.data;
 
-    const serverUser: ServerUser = await res.json();
-
-    const user: User = {
-      id: serverUser.id,
+    return {
       email: serverUser.email,
-      username: serverUser.name || "Unknown",
-      avatar: serverUser.avatar || "",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      username: serverUser.name ?? "Unknown",
+      avatar: serverUser.avatar ?? "",
     };
-
-    return user;
   } catch {
     return null;
   }
 }
+
+export async function getNoteById(noteId: string): Promise<Note> {
+  const cookieStore = await resolveCookieStore();
+  const cookieHeader = cookieHeaderFromStore(cookieStore);
+
+  try {
+    const res = await serverApi.get<Note>(`/notes/${noteId}`, {
+      headers: { Cookie: cookieHeader },
+    });
+    return res.data;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err)) {
+      const serverMessage =
+        typeof err.response?.data === "object" &&
+        err.response?.data !== null &&
+        "message" in err.response!.data
+          ? (err.response!.data as { message?: string }).message
+          : undefined;
+      throw new Error(serverMessage ?? "Failed to fetch note");
+    }
+    throw new Error("Failed to fetch note");
+  }
+}
+
+export default serverApi;

@@ -1,26 +1,27 @@
 "use client";
 
-import { PropsWithChildren, useEffect, useState } from "react";
-import { useAuthStore } from "../../lib/store/authStore";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/store/authStore";
+import { getCurrentUser } from "@/lib/api/clientApi";
+import type { User } from "@/types/user";
 
-export default function AuthProvider({ children }: PropsWithChildren) {
-  const { setAuthenticated } = useAuthStore();
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export default function AuthProvider({ children }: AuthProviderProps) {
+  const { setUser, logout } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     async function checkSession() {
       try {
-        const res = await fetch("/api/users/me", { credentials: "include" });
-        if (res.ok) {
-          setAuthenticated(true);
-        } else {
-          setAuthenticated(false);
-          router.push("/sign-in");
-        }
+        const user: User = await getCurrentUser();
+        setUser(user);
       } catch {
-        setAuthenticated(false);
+        logout();
         router.push("/sign-in");
       } finally {
         setLoading(false);
@@ -28,7 +29,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
     }
 
     checkSession();
-  }, [router, setAuthenticated]);
+  }, [router, setUser, logout]);
 
   if (loading) return <p>Loading...</p>;
 
