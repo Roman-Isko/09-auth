@@ -1,4 +1,3 @@
-// app/(private routes)/notes/filter/[...slug]/page.tsx
 import NotesClient from "../../../../../components/Notes/Notes.client";
 import type { NotesResponse } from "../../../../../types/note";
 import { getNotesServer } from "../../../../../lib/api/serverApi";

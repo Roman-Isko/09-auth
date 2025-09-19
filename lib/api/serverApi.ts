@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { cookies } from "next/headers";
 import type { ServerUser } from "./types";
 import type { User } from "../../types/user";
-import type { Note } from "../../types/note";
+import type { Note, NotesResponse } from "../../types/note";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 if (!apiUrl) throw new Error("NEXT_PUBLIC_API_URL is not defined");
@@ -43,46 +43,20 @@ export async function signIn(payload: {
   email: string;
   password: string;
 }): Promise<ServerUser> {
-  try {
-    const res = await serverApi.post<ServerUser>("/auth/login", payload, {
-      headers: { "Content-Type": "application/json" },
-    });
-    return res.data;
-  } catch (err: unknown) {
-    if (axios.isAxiosError(err)) {
-      const serverMessage =
-        typeof err.response?.data === "object" &&
-        err.response?.data !== null &&
-        "message" in err.response!.data
-          ? (err.response!.data as { message?: string }).message
-          : undefined;
-      throw new Error(serverMessage ?? "Sign in failed");
-    }
-    throw new Error("Sign in failed");
-  }
+  const res = await serverApi.post<ServerUser>("/auth/login", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return res.data;
 }
 
 export async function signUp(payload: {
   email: string;
   password: string;
 }): Promise<ServerUser> {
-  try {
-    const res = await serverApi.post<ServerUser>("/auth/register", payload, {
-      headers: { "Content-Type": "application/json" },
-    });
-    return res.data;
-  } catch (err: unknown) {
-    if (axios.isAxiosError(err)) {
-      const serverMessage =
-        typeof err.response?.data === "object" &&
-        err.response?.data !== null &&
-        "message" in err.response!.data
-          ? (err.response!.data as { message?: string }).message
-          : undefined;
-      throw new Error(serverMessage ?? "Sign up failed");
-    }
-    throw new Error("Sign up failed");
-  }
+  const res = await serverApi.post<ServerUser>("/auth/register", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return res.data;
 }
 
 export async function refreshSession(): Promise<AxiosResponse<TokensResponse>> {
@@ -106,9 +80,12 @@ export async function getUserServer(): Promise<User | null> {
     const serverUser = res.data;
 
     return {
+      id: serverUser.id,
       email: serverUser.email,
       username: serverUser.name ?? "Unknown",
       avatar: serverUser.avatar ?? "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
   } catch {
     return null;
@@ -119,23 +96,32 @@ export async function getNoteById(noteId: string): Promise<Note> {
   const cookieStore = await resolveCookieStore();
   const cookieHeader = cookieHeaderFromStore(cookieStore);
 
-  try {
-    const res = await serverApi.get<Note>(`/notes/${noteId}`, {
-      headers: { Cookie: cookieHeader },
-    });
-    return res.data;
-  } catch (err: unknown) {
-    if (axios.isAxiosError(err)) {
-      const serverMessage =
-        typeof err.response?.data === "object" &&
-        err.response?.data !== null &&
-        "message" in err.response!.data
-          ? (err.response!.data as { message?: string }).message
-          : undefined;
-      throw new Error(serverMessage ?? "Failed to fetch note");
-    }
-    throw new Error("Failed to fetch note");
-  }
+  const res = await serverApi.get<Note>(`/notes/${noteId}`, {
+    headers: { Cookie: cookieHeader },
+  });
+  return res.data;
+}
+
+export async function getNotesServer(params: {
+  page: number;
+  search?: string;
+  tag?: string;
+}): Promise<NotesResponse> {
+  const cookieStore = await resolveCookieStore();
+  const cookieHeader = cookieHeaderFromStore(cookieStore);
+
+  const { page, search, tag } = params;
+
+  const queryParams: Record<string, unknown> = { page, perPage: 12 };
+  if (search) queryParams.search = search;
+  if (tag) queryParams.tag = tag;
+
+  const res = await serverApi.get<NotesResponse>("/notes", {
+    headers: { Cookie: cookieHeader },
+    params: queryParams,
+  });
+
+  return res.data;
 }
 
 export default serverApi;

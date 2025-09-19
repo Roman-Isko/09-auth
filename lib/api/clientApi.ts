@@ -3,7 +3,7 @@ import type { User } from "@/types/user";
 import type { Note, NotesResponse, NewNote } from "@/types/note";
 
 const clientApi: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://notehub-api.goit.study",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
