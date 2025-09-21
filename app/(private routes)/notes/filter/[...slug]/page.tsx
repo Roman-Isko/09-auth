@@ -35,26 +35,65 @@
 
 // app/(private routes)/notes/filter/[...slug]/page.tsx
 import { Fragment } from "react";
+import axios from "axios";
 
-// Мінімальні inline типи для params та searchParams
+type NotesPageParams = {
+  slug: string[];
+};
+
+type NotesPageSearchParams = {
+  [key: string]: string | string[];
+};
+
+type Note = {
+  id: string;
+  title: string;
+  body: string;
+};
+
+async function fetchNotes(slug: string[]): Promise<Note[]> {
+  const res = await axios.get(
+    `https://notehub-public.goit.study/api/notes?filter=${slug.join(",")}`,
+  );
+  return res.data;
+}
+
 export default async function NotesPage({
   params,
   searchParams,
 }: {
-  params: { slug: string[] }; // для динамічного маршруту [...slug]
-  searchParams?: { [key: string]: string | string[] }; // необов'язкові query-параметри
+  params: NotesPageParams;
+  searchParams?: NotesPageSearchParams;
 }) {
-  // Тестовий рендер для перевірки params та searchParams
+  const notes: Note[] = await fetchNotes(params.slug);
+
   return (
     <Fragment>
       <h1>Notes Page</h1>
+
       <div>
         <strong>Params:</strong>
         <pre>{JSON.stringify(params, null, 2)}</pre>
       </div>
+
       <div>
         <strong>Search Params:</strong>
         <pre>{JSON.stringify(searchParams, null, 2)}</pre>
+      </div>
+
+      <div>
+        <h2>Notes:</h2>
+        {notes.length > 0 ? (
+          <ul>
+            {notes.map((note) => (
+              <li key={note.id}>
+                <strong>{note.title}</strong>: {note.body}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No notes found.</p>
+        )}
       </div>
     </Fragment>
   );
