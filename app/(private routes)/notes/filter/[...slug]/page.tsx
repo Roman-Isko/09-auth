@@ -50,12 +50,13 @@ async function getNotes(slug: string[]): Promise<Note[]> {
   return res.data;
 }
 
-interface PageProps {
+export default async function NotesPage({
+  params,
+  searchParams,
+}: {
   params: { slug: string[] };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}
-
-export default async function NotesPage({ params, searchParams }: PageProps) {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const notes = await getNotes(params.slug);
 
   return (
