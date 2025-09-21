@@ -34,8 +34,16 @@
 // }
 
 // app/(private routes)/notes/filter/[...slug]/page.tsx
-import { Fragment, useEffect, useState } from "react";
+import { Fragment } from "react";
 import axios from "axios";
+
+type NotesPageParams = {
+  slug: string[];
+};
+
+type NotesPageSearchParams = {
+  [key: string]: string | string[];
+};
 
 type Note = {
   id: string;
@@ -43,35 +51,39 @@ type Note = {
   body: string;
 };
 
-type NotesPageProps = {
-  params: { slug: string[] };
-  searchParams?: { [key: string]: string | string[] };
-};
+async function getNotes(slug: string[]): Promise<Note[]> {
+  const res = await axios.get(
+    `https://notehub-public.goit.study/api/notes?filter=${slug.join(",")}`,
+  );
+  return res.data;
+}
 
-export default function NotesPage({ params, searchParams }: NotesPageProps) {
-  const [notes, setNotes] = useState<Note[]>([]);
+interface NotesPageProps {
+  params: NotesPageParams;
+  searchParams?: NotesPageSearchParams;
+}
 
-  useEffect(() => {
-    async function fetchNotes() {
-      const res = await axios.get(
-        `https://notehub-public.goit.study/api/notes?filter=${params.slug.join(",")}`,
-      );
-      setNotes(res.data);
-    }
-    fetchNotes();
-  }, [params.slug]);
+export default async function NotesPage({
+  params,
+  searchParams,
+}: NotesPageProps) {
+  // Серверний fetch
+  const notes = await getNotes(params.slug);
 
   return (
     <Fragment>
       <h1>Notes Page</h1>
+
       <div>
         <strong>Params:</strong>
         <pre>{JSON.stringify(params, null, 2)}</pre>
       </div>
+
       <div>
         <strong>Search Params:</strong>
         <pre>{JSON.stringify(searchParams, null, 2)}</pre>
       </div>
+
       <div>
         <h2>Notes:</h2>
         {notes.length > 0 ? (
