@@ -67,7 +67,6 @@ export default async function NotesPage({
   params,
   searchParams,
 }: NotesPageProps) {
-  // Серверний fetch
   const notes = await getNotes(params.slug);
 
   return (
