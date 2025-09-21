@@ -37,14 +37,6 @@
 import { Fragment } from "react";
 import axios from "axios";
 
-type NotesPageParams = {
-  slug: string[];
-};
-
-type NotesPageSearchParams = {
-  [key: string]: string | string[];
-};
-
 type Note = {
   id: string;
   title: string;
@@ -58,15 +50,12 @@ async function getNotes(slug: string[]): Promise<Note[]> {
   return res.data;
 }
 
-interface NotesPageProps {
-  params: NotesPageParams;
-  searchParams?: NotesPageSearchParams;
+interface PageProps {
+  params: { slug: string[] };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
-export default async function NotesPage({
-  params,
-  searchParams,
-}: NotesPageProps) {
+export default async function NotesPage({ params, searchParams }: PageProps) {
   const notes = await getNotes(params.slug);
 
   return (
