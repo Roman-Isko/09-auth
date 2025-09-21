@@ -38,16 +38,24 @@ import NotesClient from "../../../../../components/Notes/Notes.client";
 import type { NotesResponse } from "../../../../../types/note";
 import { getNotesServer } from "../../../../../lib/api/serverApi";
 
+interface NotesPageParams {
+  slug?: string[];
+}
+
+interface NotesPageSearchParams {
+  page?: string;
+  search?: string;
+}
+
 export default async function NotesPage({
   params,
   searchParams,
 }: {
-  params: { slug?: string[] };
-  searchParams?: { page?: string; search?: string };
+  params: Readonly<NotesPageParams>;
+  searchParams?: Readonly<NotesPageSearchParams>;
 }) {
-  const { slug } = params;
-  const page = searchParams?.page ?? "1";
-  const search = searchParams?.search ?? "";
+  const { slug } = params ?? {};
+  const { page = "1", search = "" } = searchParams ?? {};
 
   const tag = slug?.[0] ?? "All";
   const pageNumber = Number(page) || 1;
