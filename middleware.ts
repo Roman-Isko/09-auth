@@ -58,87 +58,25 @@
 //   matcher: ["/profile/:path*", "/notes/:path*", "/sign-in", "/sign-up"],
 // };
 
-// middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://notehub-api.goit.study";
+export const config = {
+  matcher: ["/notes/:path*", "/profile/:path*"], // захищені маршрути
+};
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const token = req.cookies.get("token")?.value;
 
-  // Отримуємо токени з кукі
-  const accessToken = req.cookies.get("accessToken")?.value;
-  const refreshToken = req.cookies.get("refreshToken")?.value;
-
-  const isPublicPath =
-    pathname.startsWith("/sign-in") ||
-    pathname.startsWith("/sign-up") ||
-    pathname === "/" ||
-    pathname.startsWith("/api");
-
-  const isPrivatePath =
-    pathname.startsWith("/profile") || pathname.startsWith("/notes");
-
-  // Якщо немає accessToken, але є refreshToken, пробуємо оновити сесію
-  if (!accessToken && refreshToken) {
-    try {
-      const apiRes = await fetch(`${API_URL}/auth/refresh`, {
-        method: "POST",
-        headers: {
-          Cookie: `refreshToken=${refreshToken}`,
-        },
-        cache: "no-store",
-      });
-
-      if (!apiRes.ok) {
-        // refresh не пройшов — видаляємо кукі
-        const response = NextResponse.next();
-        response.cookies.delete("accessToken");
-        response.cookies.delete("refreshToken");
-        if (isPrivatePath) {
-          const url = req.nextUrl.clone();
-          url.pathname = "/sign-in";
-          return NextResponse.redirect(url);
-        }
-        return response;
-      }
-      // Сервер має сам встановити Set-Cookie
-    } catch (err) {
-      console.error("Failed fetching /users/me:", err);
-      const response = NextResponse.next();
-      response.cookies.delete("accessToken");
-      response.cookies.delete("refreshToken");
-      if (isPrivatePath) {
-        const url = req.nextUrl.clone();
-        url.pathname = "/sign-in";
-        return NextResponse.redirect(url);
-      }
-      return response;
-    }
+  if (!token) {
+    // редірект на сторінку входу, якщо токену немає
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Редирект неавторизованих на приватні сторінки
-  if (!accessToken && isPrivatePath) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/sign-in";
-    return NextResponse.redirect(url);
-  }
-
-  // Редирект авторизованих на публічні сторінки (sign-in/sign-up)
-  if (accessToken && isPublicPath && pathname !== "/") {
-    const url = req.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
-  }
-
-  return NextResponse.next();
+  // передаємо токен як кукі далі
+  const response = NextResponse.next();
+  response.cookies.set("token", token, { path: "/" });
+  return response;
 }
-
-// matcher для middleware
-export const config = {
-  matcher: ["/profile/:path*", "/notes/:path*", "/sign-in", "/sign-up"],
-};
 
 // // middleware.ts
 // import { NextRequest, NextResponse } from "next/server";
