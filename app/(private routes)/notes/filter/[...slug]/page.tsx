@@ -38,16 +38,13 @@ import NotesClient from "../../../../../components/Notes/Notes.client";
 import type { NotesResponse } from "../../../../../types/note";
 import { getNotesServer } from "../../../../../lib/api/serverApi";
 
-// Правильна типізація для App Router
-type NotesPageProps = {
-  params: { slug?: string[] };
-  searchParams?: { page?: string; search?: string };
-};
-
 export default async function NotesPage({
   params,
   searchParams,
-}: NotesPageProps) {
+}: {
+  params: { slug?: string[] };
+  searchParams?: { page?: string; search?: string };
+}) {
   const { slug } = params;
   const { page = "1", search = "" } = searchParams ?? {};
 
