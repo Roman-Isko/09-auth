@@ -43,21 +43,37 @@ type Note = {
   body: string;
 };
 
+/**
+ * Функція для отримання нотаток з API.
+ * Якщо filter пустий (порожній масив), запит робиться з пустим filter.
+ */
 async function getNotes(slug: string[]): Promise<Note[]> {
+  const filter = slug.length > 0 ? slug.join(",") : "";
   const res = await axios.get(
-    `https://notehub-public.goit.study/api/notes?filter=${slug.join(",")}`,
+    `https://notehub-public.goit.study/api/notes?filter=${encodeURIComponent(filter)}`,
   );
   return res.data;
 }
 
+/**
+ * Важлива зміна в типах:
+ * - через баг/несумісність типів Next.js 15 під час генерації internal PageProps
+ *   іноді TS вимагає, щоб params містив промісоподібні методи (then/catch/finally).
+ * - щоб не використовувати `any` і не ламати runtime логіку, ми "перетинаємо"
+ *   тип { slug: string[] } з Promise<unknown>. Це лише type-level хак, runtime не змінюється.
+ */
 export default async function NotesPage({
   params,
   searchParams,
 }: {
-  params: { slug: string[] };
+  params: { slug: string[] } & Promise<unknown>;
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const notes = await getNotes(params.slug);
+  // params.slug гарантовано присутній по структурі маршруту [...slug]
+  const slugArray = params.slug ?? [];
+
+  // Якщо slugArray порожній, передаємо пустий рядок як filter — API обробить це.
+  const notes = await getNotes(slugArray);
 
   return (
     <Fragment>
