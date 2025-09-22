@@ -35,7 +35,6 @@
 
 // app/(private routes)/notes/filter/[...slug]/page.tsx
 import { Fragment } from "react";
-import axios from "axios";
 
 type Note = {
   id: string;
@@ -44,36 +43,53 @@ type Note = {
 };
 
 /**
- * Функція для отримання нотаток з API.
- * Якщо filter пустий (порожній масив), запит робиться з пустим filter.
+ * Server component: отримує params/searchParams від Next.js.
+ * Ми приймаємо props як `unknown`, щоб уникнути конфліктів типів Next.js під час build.
+ * Потім локально приводимо props до потрібної форми.
  */
-async function getNotes(slug: string[]): Promise<Note[]> {
-  const filter = slug.length > 0 ? slug.join(",") : "";
-  const res = await axios.get(
-    `https://notehub-public.goit.study/api/notes?filter=${encodeURIComponent(filter)}`,
-  );
-  return res.data;
-}
+export default async function NotesPage(props: unknown) {
+  // Локально приводимо props до очікуваної форми (без any)
+  const { params, searchParams } =
+    (props as {
+      params?: { slug?: string[] };
+      searchParams?: Record<string, string | string[] | undefined>;
+    }) ?? {};
 
-/**
- * Важлива зміна в типах:
- * - через баг/несумісність типів Next.js 15 під час генерації internal PageProps
- *   іноді TS вимагає, щоб params містив промісоподібні методи (then/catch/finally).
- * - щоб не використовувати `any` і не ламати runtime логіку, ми "перетинаємо"
- *   тип { slug: string[] } з Promise<unknown>. Це лише type-level хак, runtime не змінюється.
- */
-export default async function NotesPage({
-  params,
-  searchParams,
-}: {
-  params: { slug: string[] } & Promise<unknown>;
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
-  // params.slug гарантовано присутній по структурі маршруту [...slug]
-  const slugArray = params.slug ?? [];
+  const slugArray = params?.slug ?? [];
 
-  // Якщо slugArray порожній, передаємо пустий рядок як filter — API обробить це.
-  const notes = await getNotes(slugArray);
+  // Побудуємо запитний параметр filter; API очікує рядок, або пустий рядок
+  const filter = slugArray.length > 0 ? slugArray.join(",") : "";
+
+  // Використовуємо fetch (Edge-friendly) замість axios
+  const url = filter
+    ? `https://notehub-public.goit.study/api/notes?filter=${encodeURIComponent(filter)}`
+    : `https://notehub-public.goit.study/api/notes`;
+
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    // У production краще робити більш витончену обробку помилок.
+    // Тут просто повернемо повідомлення.
+    return (
+      <Fragment>
+        <h1>Notes Page</h1>
+        <p>
+          Failed to fetch notes: {res.status} {res.statusText}
+        </p>
+      </Fragment>
+    );
+  }
+
+  // Припускаємо, що API повертає масив нотаток (як у твоєму прикладі).
+  // Якщо API повертає { notes: [...] } — треба адаптувати: const data = await res.json(); const notes = data.notes;
+  const notes = (await res.json()) as Note[] | { notes?: Note[] };
+
+  // Підтримка двох можливих форматів відповіді:
+  const notesArray: Note[] = Array.isArray(notes)
+    ? notes
+    : Array.isArray((notes as { notes?: Note[] }).notes)
+      ? (notes as { notes?: Note[] }).notes!
+      : [];
 
   return (
     <Fragment>
@@ -81,19 +97,19 @@ export default async function NotesPage({
 
       <div>
         <strong>Params:</strong>
-        <pre>{JSON.stringify(params, null, 2)}</pre>
+        <pre>{JSON.stringify(params ?? {}, null, 2)}</pre>
       </div>
 
       <div>
         <strong>Search Params:</strong>
-        <pre>{JSON.stringify(searchParams, null, 2)}</pre>
+        <pre>{JSON.stringify(searchParams ?? {}, null, 2)}</pre>
       </div>
 
       <div>
         <h2>Notes:</h2>
-        {notes.length > 0 ? (
+        {notesArray.length > 0 ? (
           <ul>
-            {notes.map((note) => (
+            {notesArray.map((note) => (
               <li key={note.id}>
                 <strong>{note.title}</strong>: {note.body}
               </li>
