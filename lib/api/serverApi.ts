@@ -126,341 +126,146 @@
 
 // export default serverApi;
 
+//////////////////////////////////////////////////////////////////
+
 // lib/api/serverApi.ts
-// Серверні (SSR / Server Components) helper-функції, Edge-friendly (fetch)
-import { cookies } from "next/headers";
+// lib/api/serverApi.ts
 import type { User } from "../../types/user";
-import type { Note, NotesResponse } from "../../types/note";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "https://notehub-api.goit.study";
-
-type CookieEntry = { name: string; value: string };
-
-async function resolveCookieStoreLike(
-  storeArg?: unknown,
-): Promise<{ getAll(): CookieEntry[] } | null> {
-  const maybe = storeArg ?? cookies();
-  // може бути Promise або безпосередній об'єкт
-  if (
-    typeof maybe === "object" &&
-    maybe !== null &&
-    "then" in maybe &&
-    typeof (maybe as Promise<unknown>).then === "function"
-  ) {
-    const awaited = (await (maybe as Promise<unknown>)) as unknown;
-    if (
-      typeof awaited === "object" &&
-      awaited !== null &&
-      typeof (awaited as { getAll?: unknown }).getAll === "function"
-    ) {
-      return awaited as { getAll(): CookieEntry[] };
-    }
-    return null;
-  }
-
-  if (
-    typeof maybe === "object" &&
-    maybe !== null &&
-    typeof (maybe as { getAll?: unknown }).getAll === "function"
-  ) {
-    return maybe as { getAll(): CookieEntry[] };
-  }
-  return null;
-}
-
-async function buildCookieHeaderFromStore(storeArg?: unknown): Promise<string> {
-  const store = await resolveCookieStoreLike(storeArg);
-  if (!store) return "";
-  const parts = store.getAll();
-  return parts.map((c) => `${c.name}=${c.value}`).join("; ");
-}
+  (process.env.NEXT_PUBLIC_API_URL || "https://notehub-api.goit.study") +
+  "/api";
 
 export type TokensResponse = {
   accessToken?: string;
   refreshToken?: string;
-  setCookieHeader?: string | null;
 };
 
-/** refresh session on server-side (returns tokens JSON or null) */
-export async function refreshSessionServer(
-  cookieHeader?: string,
-): Promise<TokensResponse | null> {
-  const header = cookieHeader ?? (await buildCookieHeaderFromStore());
+// --- оновлення сесії через refreshToken ---
+export async function refreshSession(): Promise<TokensResponse> {
   try {
     const res = await fetch(`${API_URL}/auth/refresh`, {
       method: "POST",
-      headers: header ? { Cookie: header } : undefined,
+      credentials: "include",
       cache: "no-store",
     });
-
-    if (!res.ok) return null;
-
-    let parsed: unknown = null;
-    try {
-      parsed = await res.json();
-    } catch {
-      parsed = null;
-    }
-
-    const setCookieHeader = res.headers.get("set-cookie");
-
-    const tokens: TokensResponse = {
-      accessToken:
-        typeof parsed === "object" && parsed !== null && "accessToken" in parsed
-          ? (parsed as { accessToken?: string }).accessToken
-          : undefined,
-      refreshToken:
-        typeof parsed === "object" &&
-        parsed !== null &&
-        "refreshToken" in parsed
-          ? (parsed as { refreshToken?: string }).refreshToken
-          : undefined,
-      setCookieHeader: setCookieHeader ?? null,
-    };
-
-    if (
-      !tokens.accessToken &&
-      !tokens.refreshToken &&
-      !tokens.setCookieHeader
-    ) {
-      return null;
-    }
-    return tokens;
+    if (!res.ok) return {};
+    return (await res.json()) as TokensResponse;
   } catch {
-    return null;
+    return {};
   }
 }
 
-/** Отримати поточного користувача (сервер) */
+// --- отримати поточного користувача з серверних cookies ---
 export async function getUserServer(
   cookieHeader?: string,
 ): Promise<User | null> {
-  const header = cookieHeader ?? (await buildCookieHeaderFromStore());
   try {
+    const headers: HeadersInit = {};
+    if (cookieHeader) headers["Cookie"] = cookieHeader;
+
     const res = await fetch(`${API_URL}/users/me`, {
       method: "GET",
-      headers: header ? { Cookie: header } : undefined,
+      headers,
       cache: "no-store",
     });
 
     if (!res.ok) return null;
-    const serverUser = (await res.json()) as {
-      id?: string;
+
+    const serverUser = (await res.json().catch(() => ({}))) as Partial<User> & {
       _id?: string;
-      email?: string;
       name?: string;
-      username?: string;
-      avatar?: string;
-      createdAt?: string;
-      updatedAt?: string;
     };
 
-    const user: User = {
-      id: (serverUser.id ?? serverUser._id ?? "") as string,
+    return {
+      id: serverUser.id ?? serverUser._id ?? "",
       email: serverUser.email ?? "",
-      username: serverUser.name ?? serverUser.username ?? "",
+      username: serverUser.username ?? serverUser.name ?? "",
       avatar: serverUser.avatar ?? "",
       createdAt: serverUser.createdAt ?? new Date().toISOString(),
       updatedAt: serverUser.updatedAt ?? new Date().toISOString(),
     };
-
-    return user;
   } catch {
     return null;
   }
 }
 
-/** Отримати список нот (сервер) */
-export async function getNotesServer(params: {
-  page: number;
-  perPage?: number;
-  search?: string;
-  tag?: string;
-}): Promise<NotesResponse> {
-  const header = await buildCookieHeaderFromStore();
-  const url = new URL(`${API_URL}/notes`);
-  url.searchParams.set("page", String(params.page));
-  url.searchParams.set("perPage", String(params.perPage ?? 12));
-  if (params.search) url.searchParams.set("search", params.search);
-  if (params.tag) url.searchParams.set("tag", params.tag);
+//////////////////////////////////////////////////////////////////
 
-  const res = await fetch(url.toString(), {
-    method: "GET",
-    headers: header ? { Cookie: header } : undefined,
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to load notes (${res.status})`);
-  }
-  return (await res.json()) as NotesResponse;
-}
-
-/** Отримати нотатку по id (сервер) */
-export async function getNoteByIdServer(noteId: string): Promise<Note> {
-  const header = await buildCookieHeaderFromStore();
-  const res = await fetch(`${API_URL}/notes/${encodeURIComponent(noteId)}`, {
-    method: "GET",
-    headers: header ? { Cookie: header } : undefined,
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch note ${noteId} (${res.status})`);
-  }
-  return (await res.json()) as Note;
-}
-
-/** Зручний default export (не анонімний) */
-export const serverApi = {
-  refreshSessionServer,
-  getUserServer,
-  getNotesServer,
-  getNoteByIdServer,
-};
-
-export default serverApi;
-
-// // lib/api/serverApi.ts
-// import { cookies } from "next/headers";
+// lib/api/serverApi.ts
 // import type { User } from "../../types/user";
 // import type { Note, NotesResponse } from "../../types/note";
 
 // const API_URL =
-//   process.env.NEXT_PUBLIC_API_URL || "https://notehub-api.goit.study";
-
-// /* ----- helpers/types ----- */
-// type CookieEntry = { name: string; value: string };
-
-// function isThenable(obj: unknown): obj is Promise<unknown> {
-//   return (
-//     typeof obj === "object" &&
-//     obj !== null &&
-//     typeof (obj as Promise<unknown>).then === "function"
-//   );
-// }
-
-// async function resolveCookieStoreLike(
-//   storeArg?: unknown,
-// ): Promise<{ getAll(): CookieEntry[] } | null> {
-//   const maybe = storeArg ?? cookies();
-//   const resolved = isThenable(maybe) ? await maybe : maybe;
-//   if (
-//     typeof resolved === "object" &&
-//     resolved !== null &&
-//     typeof (resolved as { getAll?: unknown }).getAll === "function"
-//   ) {
-//     return resolved as { getAll(): CookieEntry[] };
-//   }
-//   return null;
-// }
-
-// async function buildCookieHeaderFromStore(storeArg?: unknown): Promise<string> {
-//   const store = await resolveCookieStoreLike(storeArg);
-//   if (!store) return "";
-//   const parts = store.getAll();
-//   // ensure type safety for entries
-//   return parts.map((c) => `${c.name}=${c.value}`).join("; ");
-// }
+//   (process.env.NEXT_PUBLIC_API_URL || "https://notehub-api.goit.study") +
+//   "/api";
 
 // export type TokensResponse = {
 //   accessToken?: string;
 //   refreshToken?: string;
-//   setCookieHeader?: string | null;
 // };
 
-// function isTokensCandidate(
-//   obj: unknown,
-// ): obj is { accessToken?: string; refreshToken?: string } {
-//   return (
-//     typeof obj === "object" &&
-//     obj !== null &&
-//     ("accessToken" in (obj as object) || "refreshToken" in (obj as object))
-//   );
-// }
-
-// /* ----- refresh session (server-side) ----- */
-// export async function refreshSessionServer(
-//   cookieHeader?: string,
-// ): Promise<TokensResponse | null> {
-//   const header = cookieHeader ?? (await buildCookieHeaderFromStore());
+// // --- refreshSession для middleware ---
+// export async function refreshSession(): Promise<TokensResponse> {
 //   try {
 //     const res = await fetch(`${API_URL}/auth/refresh`, {
 //       method: "POST",
-//       headers: {
-//         ...(header ? { Cookie: header } : {}),
-//       },
+//       credentials: "include", // cookies будуть відправлятися автоматично
 //       cache: "no-store",
 //     });
 
-//     if (!res.ok) return null;
+//     if (!res.ok) return {}; // якщо помилка, повертаємо порожній об'єкт
 
-//     // try parse JSON safely
-//     let parsed: unknown = null;
-//     try {
-//       parsed = await res.json();
-//     } catch {
-//       parsed = null;
-//     }
+//     const tokens: Partial<TokensResponse> = (await res
+//       .json()
+//       .catch(() => ({}))) as Partial<TokensResponse>;
 
-//     const setCookieHeader = res.headers.get("set-cookie");
+//     // Дебаг
+//     console.log("refreshSession tokens:", tokens);
 
-//     const out: TokensResponse = {
-//       accessToken: isTokensCandidate(parsed) ? parsed.accessToken : undefined,
-//       refreshToken: isTokensCandidate(parsed) ? parsed.refreshToken : undefined,
-//       setCookieHeader: setCookieHeader ?? null,
+//     return {
+//       accessToken: tokens.accessToken,
+//       refreshToken: tokens.refreshToken,
 //     };
-
-//     if (!out.accessToken && !out.refreshToken && !out.setCookieHeader)
-//       return null;
-//     return out;
-//   } catch {
-//     return null;
+//   } catch (err) {
+//     console.error("refreshSession error:", err);
+//     return {};
 //   }
 // }
 
-// /* ----- get current user (server-side) ----- */
-// type RawServerUser = {
-//   id?: string;
-//   _id?: string;
-//   email?: string;
-//   name?: string;
-//   username?: string;
-//   avatar?: string;
-//   createdAt?: string;
-//   updatedAt?: string;
-// };
-
-// function isRawServerUser(obj: unknown): obj is RawServerUser {
-//   return (
-//     typeof obj === "object" &&
-//     obj !== null &&
-//     ("email" in (obj as object) ||
-//       "id" in (obj as object) ||
-//       "_id" in (obj as object))
-//   );
-// }
-
+// // --- Отримати поточного користувача ---
 // export async function getUserServer(
 //   cookieHeader?: string,
 // ): Promise<User | null> {
-//   const header = cookieHeader ?? (await buildCookieHeaderFromStore());
 //   try {
+//     console.log("Fetching user with cookies:", cookieHeader);
+//     // if (cookieHeader) console.log("Fetching user with cookies:", cookieHeader);
+
 //     const res = await fetch(`${API_URL}/users/me`, {
-//       headers: {
-//         ...(header ? { Cookie: header } : {}),
-//       },
+//       method: "GET",
+//       headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
 //       cache: "no-store",
 //     });
 
 //     if (!res.ok) return null;
 
-//     const serverUserRaw = await res.json();
-//     if (!isRawServerUser(serverUserRaw)) return null;
+//     type ServerUser = {
+//       id?: string;
+//       _id?: string;
+//       email?: string;
+//       name?: string;
+//       username?: string;
+//       avatar?: string;
+//       createdAt?: string;
+//       updatedAt?: string;
+//     };
 
-//     const serverUser = serverUserRaw;
+//     const serverUser: ServerUser = (await res
+//       .json()
+//       .catch(() => ({}))) as ServerUser;
 
 //     const user: User = {
-//       id: (serverUser.id ?? serverUser._id ?? "") as string,
+//       id: serverUser.id ?? serverUser._id ?? "",
 //       email: serverUser.email ?? "",
 //       username: serverUser.name ?? serverUser.username ?? "",
 //       avatar: serverUser.avatar ?? "",
@@ -469,62 +274,39 @@ export default serverApi;
 //     };
 
 //     return user;
-//   } catch {
+//   } catch (err) {
+//     console.error("getUserServer error:", err);
 //     return null;
 //   }
 // }
 
-// /* ----- get notes server-side ----- */
+// // --- Отримати нотатки ---
 // export async function getNotesServer(params: {
 //   page: number;
+//   perPage?: number;
 //   search?: string;
 //   tag?: string;
 // }): Promise<NotesResponse> {
-//   const header = await buildCookieHeaderFromStore();
 //   const url = new URL(`${API_URL}/notes`);
 //   url.searchParams.set("page", String(params.page));
+//   url.searchParams.set("perPage", String(params.perPage ?? 12));
 //   if (params.search) url.searchParams.set("search", params.search);
 //   if (params.tag) url.searchParams.set("tag", params.tag);
 
-//   const res = await fetch(url.toString(), {
-//     headers: {
-//       ...(header ? { Cookie: header } : {}),
-//     },
-//     cache: "no-store",
-//   });
+//   const res = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+//   if (!res.ok) throw new Error(`Failed to load notes (${res.status})`);
 
-//   if (!res.ok) {
-//     throw new Error(`Failed to load notes (${res.status})`);
-//   }
-
-//   const payload = await res.json();
-//   return payload as NotesResponse;
+//   return (await res.json()) as NotesResponse;
 // }
 
-// /* ----- get note by id server-side ----- */
+// // --- Отримати нотатку по ID ---
 // export async function getNoteByIdServer(noteId: string): Promise<Note> {
-//   const header = await buildCookieHeaderFromStore();
 //   const res = await fetch(`${API_URL}/notes/${encodeURIComponent(noteId)}`, {
-//     headers: {
-//       ...(header ? { Cookie: header } : {}),
-//     },
+//     method: "GET",
 //     cache: "no-store",
 //   });
-
-//   if (!res.ok) {
+//   if (!res.ok)
 //     throw new Error(`Failed to fetch note ${noteId} (${res.status})`);
-//   }
 
-//   const payload = await res.json();
-//   return payload as Note;
+//   return (await res.json()) as Note;
 // }
-
-// /* ----- default export (named const) ----- */
-// const serverApi = {
-//   refreshSessionServer,
-//   getUserServer,
-//   getNotesServer,
-//   getNoteByIdServer,
-// };
-
-// export default serverApi;

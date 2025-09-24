@@ -58,149 +58,172 @@
 //   matcher: ["/profile/:path*", "/notes/:path*", "/sign-in", "/sign-up"],
 // };
 
-import { NextRequest, NextResponse } from "next/server";
+/////////////////////////////////////////////////////////////////
 
-export const config = {
-  matcher: ["/notes/:path*", "/profile/:path*"], // захищені маршрути
-};
+// middleware.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { refreshSession } from "./lib/api/serverApi";
 
 export async function middleware(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
+  const { pathname } = req.nextUrl;
 
-  if (!token) {
-    // редірект на сторінку входу, якщо токену немає
-    return NextResponse.redirect(new URL("/login", req.url));
+  const isPublicPath =
+    pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
+  const isPrivatePath =
+    pathname.startsWith("/profile") || pathname.startsWith("/notes");
+
+  // --- отримуємо токени синхронно ---
+  const accessToken = req.cookies.get("accessToken")?.value ?? null;
+  const refreshToken = req.cookies.get("refreshToken")?.value ?? null;
+
+  let token = accessToken;
+
+  console.log("middleware tokens:", { accessToken, refreshToken, pathname });
+
+  // --- оновлення токенів через refreshToken ---
+  if (!accessToken && refreshToken) {
+    try {
+      const newTokens = await refreshSession();
+
+      if (newTokens?.accessToken && newTokens?.refreshToken) {
+        token = newTokens.accessToken;
+        const res = NextResponse.next();
+        res.cookies.set("accessToken", newTokens.accessToken, {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+        });
+        res.cookies.set("refreshToken", newTokens.refreshToken, {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+        });
+        return res;
+      } else {
+        const url = req.nextUrl.clone();
+        url.pathname = "/sign-in";
+        const res = NextResponse.redirect(url);
+        res.cookies.delete("accessToken");
+        res.cookies.delete("refreshToken");
+        return res;
+      }
+    } catch {
+      const url = req.nextUrl.clone();
+      url.pathname = "/sign-in";
+      const res = NextResponse.redirect(url);
+      res.cookies.delete("accessToken");
+      res.cookies.delete("refreshToken");
+      return res;
+    }
   }
 
-  // передаємо токен як кукі далі
-  const response = NextResponse.next();
-  response.cookies.set("token", token, { path: "/" });
-  return response;
+  // --- редірект на /sign-in для приватних маршрутів без токена ---
+  if (!token && isPrivatePath) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/sign-in";
+    return NextResponse.redirect(url);
+  }
+
+  // --- редірект на /profile для публічних маршрутів, якщо користувач залогінений ---
+  if (token && isPublicPath) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/profile";
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
 }
 
-// // middleware.ts
+export const config = {
+  matcher: ["/profile/:path*", "/notes/:path*", "/sign-in", "/sign-up"],
+};
+
+////////////////////////////////////////////////////////////////
+
+// middleware.ts
 // import { NextRequest, NextResponse } from "next/server";
-
-// const API_URL =
-//   process.env.NEXT_PUBLIC_API_URL || "https://notehub-api.goit.study";
-
-// type TokensCandidate = { accessToken?: string; refreshToken?: string };
-
-// function isTokensCandidate(obj: unknown): obj is TokensCandidate {
-//   return (
-//     typeof obj === "object" &&
-//     obj !== null &&
-//     ("accessToken" in (obj as object) || "refreshToken" in (obj as object))
-//   );
-// }
+// import { refreshSession } from "./lib/api/serverApi"; // 👈 імпортуємо дефолтний export
 
 // export async function middleware(req: NextRequest) {
 //   const { pathname } = req.nextUrl;
 
-//   // Read cookies from Edge request
-//   const accessToken = req.cookies.get("accessToken")?.value;
-//   const refreshToken = req.cookies.get("refreshToken")?.value;
-
 //   const isPublicPath =
-//     pathname.startsWith("/sign-in") ||
-//     pathname.startsWith("/sign-up") ||
-//     pathname === "/" ||
-//     pathname.startsWith("/api");
+//     pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
 //   const isPrivatePath =
 //     pathname.startsWith("/profile") || pathname.startsWith("/notes");
 
-//   const response = NextResponse.next();
-//   let isAuthenticated = Boolean(accessToken);
+//   const accessToken = req.cookies.get("accessToken")?.value ?? null;
+//   const refreshToken = req.cookies.get("refreshToken")?.value ?? null;
 
-//   if (!isAuthenticated && refreshToken) {
+//   let token = accessToken;
+
+//   console.log(
+//     "token in middleware:",
+//     token,
+//     "refreshToken:",
+//     refreshToken,
+//     "pathname:",
+//     pathname,
+//   );
+
+//   // --- Оновлення токенів через refreshToken ---
+//   if (!accessToken && refreshToken) {
 //     try {
-//       const cookieHeader = `refreshToken=${refreshToken}`;
-//       const apiRes = await fetch(`${API_URL}/auth/refresh`, {
-//         method: "POST",
-//         headers: {
-//           Cookie: cookieHeader,
-//         },
-//         cache: "no-store",
-//       });
+//       const { data: newTokens } = await refreshSession(); // 👈 тепер повертає одразу токени
+//       if (newTokens?.accessToken && newTokens?.refreshToken) {
+//         token = newTokens.accessToken;
 
-//       if (apiRes.ok) {
-//         // parse JSON safely
-//         let parsed: unknown = null;
-//         try {
-//           parsed = await apiRes.json();
-//         } catch {
-//           parsed = null;
-//         }
-
-//         if (isTokensCandidate(parsed)) {
-//           if (parsed.accessToken) {
-//             response.cookies.set("accessToken", parsed.accessToken, {
-//               httpOnly: true,
-//               sameSite: "none",
-//               secure: process.env.NODE_ENV === "production",
-//               path: "/",
-//             });
-//           }
-//           if (parsed.refreshToken) {
-//             response.cookies.set("refreshToken", parsed.refreshToken, {
-//               httpOnly: true,
-//               sameSite: "none",
-//               secure: process.env.NODE_ENV === "production",
-//               path: "/",
-//             });
-//           }
-//           isAuthenticated = Boolean(parsed.accessToken || parsed.refreshToken);
-//         } else {
-//           // fallback: backend may set cookies via Set-Cookie header
-//           const setCookieHeader = apiRes.headers.get("set-cookie");
-//           if (setCookieHeader) {
-//             const parts = setCookieHeader.split(/,(?=\s*[^=]+=)/);
-//             for (const p of parts) {
-//               const nameValue = p.split(";")[0];
-//               const idx = nameValue.indexOf("=");
-//               if (idx > -1) {
-//                 const name = nameValue.slice(0, idx).trim();
-//                 const value = nameValue.slice(idx + 1).trim();
-//                 if (name && value) {
-//                   response.cookies.set(name, value, {
-//                     httpOnly: true,
-//                     sameSite: "none",
-//                     secure: process.env.NODE_ENV === "production",
-//                     path: "/",
-//                   });
-//                   if (name === "accessToken") isAuthenticated = true;
-//                 }
-//               }
-//             }
-//           }
-//         }
+//         const res = NextResponse.next();
+//         res.cookies.set("accessToken", newTokens.accessToken, {
+//           httpOnly: true,
+//           sameSite: "lax",
+//           secure: process.env.NODE_ENV === "production",
+//           path: "/",
+//         });
+//         res.cookies.set("refreshToken", newTokens.refreshToken, {
+//           httpOnly: true,
+//           sameSite: "lax",
+//           secure: process.env.NODE_ENV === "production",
+//           path: "/",
+//         });
+//         return res;
 //       } else {
-//         response.cookies.delete("accessToken");
-//         response.cookies.delete("refreshToken");
+//         // refreshSession не повернув токени → видаляємо і редиректимо на sign-in
+//         const url = req.nextUrl.clone();
+//         url.pathname = "/sign-in";
+//         const res = NextResponse.redirect(url);
+//         res.cookies.delete("accessToken");
+//         res.cookies.delete("refreshToken");
+//         return res;
 //       }
 //     } catch {
-//       response.cookies.delete("accessToken");
-//       response.cookies.delete("refreshToken");
+//       const url = req.nextUrl.clone();
+//       url.pathname = "/sign-in";
+//       const res = NextResponse.redirect(url);
+//       res.cookies.delete("accessToken");
+//       res.cookies.delete("refreshToken");
+//       return res;
 //     }
 //   }
 
-//   if (!isAuthenticated && isPrivatePath) {
+//   // --- Редірект на /sign-in для приватних маршрутів без токена ---
+//   if (!token && isPrivatePath) {
 //     const url = req.nextUrl.clone();
 //     url.pathname = "/sign-in";
-//     console.log("accessToken:", accessToken, "refreshToken:", refreshToken);
-
 //     return NextResponse.redirect(url);
 //   }
 
-//   if (isAuthenticated && isPublicPath && pathname !== "/") {
+//   // --- Редірект на /profile для публічних маршрутів, якщо користувач залогінений ---
+//   if (token && isPublicPath) {
 //     const url = req.nextUrl.clone();
-//     url.pathname = "/";
-//     console.log("accessToken:", accessToken, "refreshToken:", refreshToken);
-
+//     url.pathname = "/profile";
 //     return NextResponse.redirect(url);
 //   }
 
-//   return response;
+//   return NextResponse.next();
 // }
 
 // export const config = {
