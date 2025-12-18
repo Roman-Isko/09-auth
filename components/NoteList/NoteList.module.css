@@ -1,0 +1,131 @@
+/* NoteList.module.css */
+
+/* Контейнер списку */
+.list {
+  list-style: none;
+  margin: 32px 0 0;
+  padding: 0;
+}
+
+/* Грід для карток: 4 в ряд, рівні відступи */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* Одна картка нотатки — ближче до першого скріну */
+.card {
+  background-color: #ffffff;
+  border-radius: 6px;
+  padding: 18px 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+}
+
+/* Заголовок */
+.title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Текст нотатки */
+.content {
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #4b5563;
+  flex-grow: 1;
+}
+
+/* Низ картки: тег + кнопки */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Тег */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+/* Область кнопок */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Базовий стиль для кнопок/лінків */
+.viewButton,
+.editButton,
+.deleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* View — синя */
+.viewButton {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.viewButton:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+/* Edit — світло-синя */
+.editButton {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.editButton:hover {
+  background-color: #1d4ed8;
+}
+
+/* Delete — червона */
+.deleteButton {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.deleteButton:hover {
+  background-color: #fca5a5;
+}
+
+/* "Нема нотаток" */
+.empty {
+  margin-top: 24px;
+  font-size: 14px;
+  color: #6b7280;
+  text-align: left;
+}

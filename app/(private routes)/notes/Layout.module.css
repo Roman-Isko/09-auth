@@ -1,0 +1,23 @@
+/* Обгортка під хедером: ліворуч сайдбар, праворуч контент */
+.wrapper {
+  display: flex;
+  align-items: flex-start;
+  /* без margin-top: RootLayout уже малює header, тут починаємо одразу під ним */
+}
+
+/* Сайдбар як в попередньому ДЗ */
+.sidebar {
+  width: 180px;
+  min-height: calc(100vh - 56px); /* підбери під реальну висоту хедера */
+  background-color: #111827;
+  color: #ffffff;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+/* Контентна частина */
+.main {
+  flex: 1;
+  padding: 24px 40px 32px;
+  box-sizing: border-box;
+}
