@@ -1,4 +1,3 @@
-// lib/getQueryClient.ts
 import { QueryClient } from "@tanstack/react-query";
 
 let client: QueryClient | null = null;

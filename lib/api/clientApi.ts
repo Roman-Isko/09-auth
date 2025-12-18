@@ -1,10 +1,6 @@
-// lib/api/clientApi.ts
-
 import { api } from "./api";
 import type { Note, Tag } from "@/types/note";
 import type { User } from "@/types/user";
-
-/* ========= Types ========= */
 
 type AuthPayload = {
   email: string;
@@ -15,7 +11,7 @@ type FetchNotesArgs = {
   page: number;
   perPage: number;
   search?: string;
-  tag?: string; // "All" або конкретний Tag
+  tag?: string;
 };
 
 type CreateNotePayload = {
@@ -43,8 +39,6 @@ function getErrorMessage(data: any, fallback: string): string {
   }
   return fallback;
 }
-
-/* ========= Notes (client) ========= */
 
 export async function fetchNotes({
   page,
@@ -114,8 +108,6 @@ export async function deleteNote(id: string): Promise<Note> {
   return res.data as Note;
 }
 
-/* ========= Auth (client) ========= */
-
 export async function register(payload: AuthPayload): Promise<User> {
   const res = await api.post("/auth/register", payload, {
     validateStatus: () => true,
@@ -144,7 +136,6 @@ export async function logout(): Promise<void> {
   await api.post("/auth/logout", {}, { validateStatus: () => true });
 }
 
-/* ========= Session / User (client) ========= */
 export async function checkSession(): Promise<boolean> {
   const res = await api.get("/auth/session", {
     validateStatus: () => true,

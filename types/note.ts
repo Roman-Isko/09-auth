@@ -1,5 +1,3 @@
-// types/note.ts
-
 export type Tag =
   | "Todo"
   | "Work"
@@ -19,7 +17,6 @@ export interface Note {
   tag: Tag;
 }
 
-// для Sidebar / селектів (включає "All")
 export const TAGS_UI = [
   "All",
   "Todo",
@@ -34,7 +31,6 @@ export const TAGS_UI = [
   "Important",
 ] as const;
 
-// тегі саме нотаток (без "All") — те, що чекали старі компоненти
 export const ALLOWED_TAGS: Tag[] = [
   "Todo",
   "Work",

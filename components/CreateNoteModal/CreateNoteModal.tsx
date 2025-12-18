@@ -17,7 +17,7 @@ type Draft = {
 };
 
 type Props = {
-  from?: string; // куди повертатись; за замовчуванням /notes
+  from?: string;
 };
 
 export default function CreateNoteModal({ from = "/notes" }: Props) {
@@ -48,7 +48,6 @@ export default function CreateNoteModal({ from = "/notes" }: Props) {
     }
   };
 
-  // 1. Завантажуємо чернетку при монтуванні
   useEffect(() => {
     if (typeof window === "undefined") return;
     const raw = window.localStorage.getItem(DRAFT_KEY);
@@ -59,12 +58,9 @@ export default function CreateNoteModal({ from = "/notes" }: Props) {
       if (saved.title) setTitle(saved.title);
       if (saved.content) setContent(saved.content);
       if (saved.tag) setTag(saved.tag);
-    } catch {
-      // якщо щось битське — ігноруємо
-    }
+    } catch {}
   }, []);
 
-  // 2. Мутація створення
   const mutation = useMutation({
     mutationFn: async () =>
       createNote({
@@ -77,7 +73,6 @@ export default function CreateNoteModal({ from = "/notes" }: Props) {
         window.localStorage.removeItem(DRAFT_KEY);
       }
       qc.invalidateQueries({ queryKey: ["notes"] });
-      // завжди повертаємось до списку
       if (typeof window !== "undefined" && window.history.length > 1) {
         router.back();
       } else {
@@ -88,8 +83,6 @@ export default function CreateNoteModal({ from = "/notes" }: Props) {
       setError("Failed to create note. Please try again.");
     },
   });
-
-  // 3. Обробники з миттєвим збереженням чернетки
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
@@ -119,8 +112,6 @@ export default function CreateNoteModal({ from = "/notes" }: Props) {
   };
 
   const handleClose = () => {
-    // ВАЖЛИВО: чернетку не чіпаємо.
-    // Вона вже збережена, при наступному відкритті підхопиться.
     goBack();
   };
 

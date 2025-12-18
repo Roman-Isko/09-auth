@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import css from "./TagsMenu.module.css";
 
 type Props = {
-  items: string[]; // ["all", ...ALLOWED_TAGS]
-  value: string; // 'all' або один із items
+  items: string[];
+  value: string;
   onSelect: (v: string) => void;
   label?: string;
 };

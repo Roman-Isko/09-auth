@@ -32,7 +32,6 @@ export default function EditNoteModal({ note, from = "/notes" }: Props) {
     }
   };
 
-  // load draft
   useEffect(() => {
     if (typeof window === "undefined") return;
     const raw = window.localStorage.getItem(DRAFT_KEY);
@@ -46,13 +45,9 @@ export default function EditNoteModal({ note, from = "/notes" }: Props) {
       if (draft.title) setTitle(draft.title);
       if (draft.content) setContent(draft.content);
       if (draft.tag) setTag(draft.tag);
-    } catch {
-      // ignore
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    } catch {}
   }, []);
 
-  // save draft
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -97,7 +92,6 @@ export default function EditNoteModal({ note, from = "/notes" }: Props) {
   };
 
   const handleCancel = () => {
-    // НЕ видаляємо чернетку, просто закриваємо
     goBack();
   };
 

@@ -34,11 +34,8 @@ export default function NoteForm() {
   const mutation = useMutation({
     mutationFn: createNote,
     onSuccess: () => {
-      // оновлюємо список нотаток
       queryClient.invalidateQueries({ queryKey: ["notes"] });
-      // чистимо чернетку
       reset();
-      // повертаємось до списку
       router.push("/notes");
     },
     onError: (err: unknown) => {

@@ -15,7 +15,6 @@ export default function Pagination({
   hasNext,
   onPageChange,
 }: Props) {
-  // Якщо немає ніякої навігації — не показуємо
   if (!hasPrev && !hasNext && page <= 1) return null;
 
   const goTo = (next: number) => {
@@ -23,7 +22,6 @@ export default function Pagination({
     onPageChange(next);
   };
 
-  // Вікно з 5 сторінок навколо поточної
   const pages: number[] = [];
   const start = Math.max(1, page - 2);
   for (let p = start; p < start + 5; p += 1) {

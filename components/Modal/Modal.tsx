@@ -17,14 +17,12 @@ export default function Modal({
 }) {
   const router = useRouter();
 
-  // ✅ Надійне закриття: спочатку back, інакше push(closeHref)
   const close = useCallback(() => {
     if (onClose) {
       onClose();
       return;
     }
     try {
-      // якщо є історія — повертаємось
       if (typeof window !== "undefined" && window.history.length > 1) {
         router.back();
       } else {

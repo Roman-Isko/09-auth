@@ -1,14 +1,9 @@
-// lib/api/serverApi.ts
 import { cookies } from "next/headers";
 import type { Note } from "@/types/note";
 import type { User } from "@/types/user";
 
 const baseURL = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
-/**
- * Хелпер для GET-запитів, які повертають JSON.
- * Використовується лише у server components / middleware.
- */
 async function getJSON<T>(
   path: string,
   params?: Record<string, any>,
@@ -52,8 +47,6 @@ async function getJSON<T>(
   }
 }
 
-/* ========= Notes ========= */
-
 type FetchNotesArgs = {
   page?: number;
   perPage?: number;
@@ -83,21 +76,11 @@ export async function fetchNoteById(id: string): Promise<Note | null> {
   return data ?? null;
 }
 
-/* ========= Auth / User ========= */
-
 export async function getMe(): Promise<User | null> {
   const data = await getJSON<User>("/users/me");
   return data ?? null;
 }
 
-/**
- * checkSession
- *
- * Для middleware: повертаємо "майже AxiosResponse":
- * - ok, status
- * - data (parsed body)
- * - headers (plain object)
- */
 export async function checkSession(cookieHeader?: string): Promise<{
   ok: boolean;
   status: number;
