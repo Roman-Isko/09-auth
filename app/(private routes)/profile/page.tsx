@@ -12,7 +12,6 @@ export default async function ProfilePage() {
   const user = await getMe();
 
   if (!user) {
-    // якщо раптом немає даних (не авторизований / проблема з сесією)
     return (
       <main className={css.mainContent}>
         <div className={css.profileCard}>

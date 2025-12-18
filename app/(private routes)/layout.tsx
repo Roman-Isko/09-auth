@@ -5,6 +5,5 @@ type PrivateLayoutProps = {
 };
 
 export default function PrivateLayout({ children }: PrivateLayoutProps) {
-  // Header / Footer / Providers вже підключені в RootLayout
   return <>{children}</>;
 }

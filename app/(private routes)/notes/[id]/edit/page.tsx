@@ -1,4 +1,3 @@
-// app/(private routes)/notes/[id]/edit/page.tsx
 import { fetchNoteById } from "@/lib/api/serverApi";
 import EditNoteForm from "@/components/NoteForm/EditNoteForm";
 import type { Metadata } from "next";

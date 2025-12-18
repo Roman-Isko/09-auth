@@ -1,11 +1,10 @@
-// app/(private routes)/profile/edit/page.tsx
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-import { getMe, updateMe } from "@/lib/api/clientApi"; // або serverApi+clientApi, як у тебе організовано
+import { getMe, updateMe } from "@/lib/api/clientApi";
 import { useAuthStore } from "@/lib/store/authStore";
 import type { User } from "@/types/user";
 
@@ -20,7 +19,6 @@ export default function EditProfilePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // підтягуємо поточного юзера при монтуванні
   useEffect(() => {
     (async () => {
       try {
@@ -45,10 +43,8 @@ export default function EditProfilePage() {
     try {
       const updated = await updateMe({ username: username.trim() });
 
-      // 🔴 ключова зміна: оновлюємо глобальний auth store
       setUser(updated);
 
-      // і тільки після цього переходимо назад на /profile
       router.push("/profile");
       router.refresh();
     } catch (err) {

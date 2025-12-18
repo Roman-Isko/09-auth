@@ -36,8 +36,6 @@ export default function SignInPage() {
       console.log("[SignIn] redirect to /profile");
       router.replace("/profile");
 
-      // fallback на випадок, якщо щось блокує client-side навігацію
-      // (наприклад, дивний стан роутів)
       setTimeout(() => {
         if (window.location.pathname === "/sign-in") {
           window.location.assign("/profile");

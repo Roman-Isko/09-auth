@@ -1,9 +1,8 @@
-// app/(private routes)/notes/filter/layout.tsx
 import type { ReactNode } from "react";
 
 type FilterLayoutProps = {
   children: ReactNode;
-  sidebar: ReactNode; // для @sidebar
+  sidebar: ReactNode; 
 };
 
 export default function NotesFilterLayout({

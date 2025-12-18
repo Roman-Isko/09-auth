@@ -56,7 +56,6 @@ export default function FilteredNotesClient({
     return () => clearTimeout(id);
   }, [search]);
 
-  // ✅ Синхронізуємо page + search з URL, НЕ чіпаючи tag
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
 
@@ -101,8 +100,6 @@ export default function FilteredNotesClient({
     <div className={css.app}>
       <div className={css.toolbar}>
         <h1 className={css.title}>Notes — {uiTag === "All" ? "All" : uiTag}</h1>
-
-        {/* ✅ Виправлений шлях: /notes/action/create */}
         <Link
           href="/notes/action/create"
           prefetch={false}
