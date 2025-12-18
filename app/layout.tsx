@@ -1,4 +1,3 @@
-// app/layout.tsx
 import type { ReactNode } from "react";
 import "./globals.css";
 import Header from "@/components/Header/Header";
@@ -14,7 +13,7 @@ export const metadata = {
 
 type RootLayoutProps = {
   children: ReactNode;
-  modal: ReactNode; // слот для @modal (Next завжди щось сюди прокине, навіть default)
+  modal: ReactNode;
 };
 
 export default function RootLayout({ children, modal }: RootLayoutProps) {
